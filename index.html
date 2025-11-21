@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Rental Location Finder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Car Rental Location Finder</h1>
+            <p class="subtitle">Find car rental locations around the world</p>
+        </header>
+
+        <div class="search-section">
+            <div class="search-container">
+                <input 
+                    type="text" 
+                    id="location-input" 
+                    placeholder="Enter a city, airport, or location (e.g., Kigali, New York, LAX)"
+                    autocomplete="off"
+                >
+                <button id="search-button">Search</button>
+            </div>
+            <div id="loading" class="loading hidden">Searching locations...</div>
+        </div>
+
+        <div class="filters-section hidden" id="filters-section">
+            <div class="filter-group">
+                <label for="type-filter">Filter by Type:</label>
+                <select id="type-filter">
+                    <option value="all">All Types</option>
+                    <option value="AIRPORT">Airport</option>
+                    <option value="CITY">City</option>
+                    <option value="NEIGHBORHOOD">Neighborhood</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="sort-option">Sort by:</label>
+                <select id="sort-option">
+                    <option value="relevance">Relevance</option>
+                    <option value="name">Name (A-Z)</option>
+                    <option value="country">Country</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <input 
+                    type="text" 
+                    id="search-filter" 
+                    placeholder="Search within results..."
+                >
+            </div>
+        </div>
+
+        <div id="results-container">
+            <div id="results"></div>
+            <div id="error-message" class="error hidden"></div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="scripts.js"></script>
+</body>
+</html>
+
