@@ -26,15 +26,19 @@ let filteredResults = [];
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Load API configuration
+    // Load API configuration from config.js
     if (typeof CONFIG !== 'undefined') {
         API_CONFIG = CONFIG;
     }
 
+    // Load saved API key from localStorage
+    loadSavedApiKey();
+
+    // Initialize settings modal
+    initializeSettings();
+
     // Verify API configuration
-    if (!API_CONFIG.apiKey || API_CONFIG.apiKey === 'YOUR_RAPIDAPI_KEY_HERE') {
-        console.warn('API key not configured. Please update config.js with your RapidAPI key.');
-    }
+    updateApiKeyStatus();
 
     // Search button event
     document.getElementById('search-button').addEventListener('click', handleSearch);
@@ -52,6 +56,163 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('search-filter').addEventListener('input', applyFilters);
 });
 
+// Load saved API key from localStorage
+function loadSavedApiKey() {
+    const savedKey = localStorage.getItem('rapidapi_key');
+    if (savedKey) {
+        API_CONFIG.apiKey = savedKey;
+        console.log('API key loaded from local storage');
+    }
+}
+
+// Save API key to localStorage
+function saveApiKey(key) {
+    if (key && key.trim()) {
+        localStorage.setItem('rapidapi_key', key.trim());
+        API_CONFIG.apiKey = key.trim();
+        console.log('API key saved to local storage');
+        return true;
+    }
+    return false;
+}
+
+// Clear saved API key
+function clearApiKey() {
+    localStorage.removeItem('rapidapi_key');
+    API_CONFIG.apiKey = '';
+    console.log('API key cleared from local storage');
+}
+
+// Update API key status indicator
+function updateApiKeyStatus() {
+    const statusIndicator = document.getElementById('api-key-status');
+    const statusText = document.getElementById('status-text');
+    const apiKeyInput = document.getElementById('api-key-input');
+
+    if (API_CONFIG.apiKey && API_CONFIG.apiKey !== 'YOUR_RAPIDAPI_KEY_HERE') {
+        statusIndicator.className = 'status-indicator configured';
+        statusText.textContent = '✓ API key configured';
+        if (apiKeyInput) {
+            apiKeyInput.value = API_CONFIG.apiKey;
+        }
+    } else {
+        statusIndicator.className = 'status-indicator not-configured';
+        statusText.textContent = '⚠ API key not configured';
+        if (apiKeyInput) {
+            apiKeyInput.value = '';
+        }
+    }
+}
+
+// Initialize settings modal
+function initializeSettings() {
+    const settingsButton = document.getElementById('settings-button');
+    const settingsModal = document.getElementById('settings-modal');
+    const closeButton = document.getElementById('close-settings');
+    const modalOverlay = document.getElementById('modal-overlay');
+    const saveButton = document.getElementById('save-api-key');
+    const clearButton = document.getElementById('clear-api-key');
+    const apiKeyInput = document.getElementById('api-key-input');
+
+    // Open settings modal
+    settingsButton.addEventListener('click', function() {
+        settingsModal.classList.remove('hidden');
+        updateApiKeyStatus();
+        // Focus on input
+        setTimeout(() => apiKeyInput.focus(), 100);
+    });
+
+    // Close settings modal
+    function closeModal() {
+        settingsModal.classList.add('hidden');
+    }
+
+    closeButton.addEventListener('click', closeModal);
+    modalOverlay.addEventListener('click', closeModal);
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !settingsModal.classList.contains('hidden')) {
+            closeModal();
+        }
+    });
+
+    // Save API key
+    saveButton.addEventListener('click', function() {
+        const apiKey = apiKeyInput.value.trim();
+        if (apiKey) {
+            if (saveApiKey(apiKey)) {
+                updateApiKeyStatus();
+                // Show success message
+                showNotification('API key saved successfully!', 'success');
+                // Close modal after a short delay
+                setTimeout(closeModal, 1000);
+            } else {
+                showNotification('Please enter a valid API key', 'error');
+            }
+        } else {
+            showNotification('Please enter an API key', 'error');
+        }
+    });
+
+    // Clear API key
+    clearButton.addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear the saved API key?')) {
+            clearApiKey();
+            updateApiKeyStatus();
+            apiKeyInput.value = '';
+            showNotification('API key cleared', 'info');
+        }
+    });
+
+    // Allow Enter key to save
+    apiKeyInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            saveButton.click();
+        }
+    });
+}
+
+// Show notification
+function showNotification(message, type = 'info') {
+    // Remove existing notification if any
+    const existing = document.querySelector('.notification');
+    if (existing) {
+        existing.remove();
+    }
+
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        animation: slideIn 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    `;
+
+    if (type === 'success') {
+        notification.style.background = '#4CAF50';
+    } else if (type === 'error') {
+        notification.style.background = '#f44336';
+    } else {
+        notification.style.background = '#2196F3';
+    }
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
 // Main search handler
 async function handleSearch() {
     const locationInput = document.getElementById('location-input').value.trim();
@@ -68,7 +229,14 @@ async function handleSearch() {
     }
 
     // Check API configuration
-    if (!API_CONFIG.apiKey || !API_CONFIG.apiHost) {
+    if (!API_CONFIG.apiKey || API_CONFIG.apiKey === 'YOUR_RAPIDAPI_KEY_HERE') {
+        showError('API key is not configured. Please click the settings icon (⚙️) in the header to enter your RapidAPI key.');
+        // Auto-open settings if no key
+        document.getElementById('settings-button').click();
+        return;
+    }
+
+    if (!API_CONFIG.apiHost) {
         showError('API configuration is missing. Please check config.js file.');
         return;
     }

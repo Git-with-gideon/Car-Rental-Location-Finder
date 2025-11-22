@@ -10,6 +10,7 @@ A modern web application for searching car rental locations worldwide using the 
 - **Smart Filtering**: Filter results by type (Airport, City, Neighborhood)
 - **Advanced Sorting**: Sort results by relevance, name, or country
 - **In-Result Search**: Search within results for quick filtering
+- **Settings Menu**: Users can input and save their API key directly in the app (stored in browser)
 - **Error Handling**: Comprehensive error handling with user-friendly messages
 - **Responsive Design**: Works seamlessly on desktop and mobile devices
 - **Modern UI**: Clean, human-friendly interface with red rose color theme
@@ -31,18 +32,25 @@ A modern web application for searching car rental locations worldwide using the 
 
 ### Step 2: Configure the Application
 
+**Option A: Using Settings Menu (Recommended)**
+1. Open `index.html` in your browser
+2. Click the settings icon (⚙️) in the top right corner
+3. Enter your RapidAPI key in the settings modal
+4. Click "Save API Key"
+5. Your key is now saved and ready to use!
+
+**Option B: Using config.js (Alternative)**
 1. Open the `config.js` file
 2. Replace `YOUR_RAPIDAPI_KEY_HERE` with your actual RapidAPI key:
    ```javascript
    const CONFIG = {
        apiKey: 'your-actual-api-key-here',
-       apiHost: 'expedia13.p.rapidapi.com'
+       apiHost: 'expedia13.p.rapidapi.com',
+       useProxy: false // chane to true if using backend (server.py)
    };
    ```
 
 ### Step 3: Run the Application
-
-**Option A: Direct API Calls (May have CORS/404 issues)**
 
 1. Open `index.html` in your web browser
    - You can double-click the file, or
@@ -55,48 +63,30 @@ A modern web application for searching car rental locations worldwide using the 
      npx http-server
      ```
 2. Navigate to `http://localhost:8000` (or the port your server uses)
+3. Configure your API key using the settings menu (⚙️ icon)
+4. Start searching for locations!
 
-**Option B: Using Backend Proxy (Recommended - Solves CORS/404 issues)**
-
-If you encounter 404 errors or CORS issues, use the backend proxy:
-
-1. Install Python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-2. Set your API key in `config.js` (the server will read it from there)
-
-3. Start the backend server:
-   ```bash
-   python server.py
-   ```
-
-4. Update `config.js` to use the proxy:
-   ```javascript
-   const CONFIG = {
-       apiKey: 'your-api-key-here',
-       apiHost: 'expedia13.p.rapidapi.com',
-       useProxy: true,  // Enable proxy mode
-       proxyUrl: 'http://localhost:5000/api/search-location'
-   };
-   ```
-
-5. Open `index.html` in your browser (the proxy will handle all API calls)
+**Note**: The application uses direct API calls. If you encounter CORS issues, you can use the optional backend proxy (see `server.py` and `requirements.txt`).
 
 ## 📖 How to Use
 
-1. **Search for Locations**: 
+1. **Configure API Key** (First Time):
+   - Click the settings icon (⚙️) in the top right corner
+   - Enter your RapidAPI key in the settings modal
+   - Click "Save API Key" - it will be stored in your browser
+   - Your key will be remembered for future visits
+
+2. **Search for Locations**: 
    - Enter a city, airport code, or location name in the search box
    - Examples: "Kigali", "New York", "LAX", "London"
    - Press Enter or click the Search button
 
-2. **Filter Results**:
+3. **Filter Results**:
    - Use the "Filter by Type" dropdown to show only Airports, Cities, or Neighborhoods
    - Use the "Sort by" dropdown to organize results
    - Use the search box to filter results by name
 
-3. **View Details**:
+4. **View Details**:
    - Each result card shows:
      - Location name and type
      - Country information
@@ -154,12 +144,10 @@ PLAYING WITH API/
 ├── scripts.js              # Application logic and API integration
 ├── config.js               # API configuration (not committed to git)
 ├── config.example.js       # Configuration template (safe to commit)
-├── server.py               # Backend proxy server (solves CORS, optional for local dev)
-├── requirements.txt        # Python dependencies for proxy server
+├── server.py               # Backend proxy server (optional - solves CORS if needed)
+├── requirements.txt        # Python dependencies for proxy server (if using backend)
 ├── .gitignore              # Git ignore rules (excludes config.js and sensitive files)
-├── README.md               # Comprehensive documentation
-├── DEPLOYMENT.md           # Detailed deployment instructions for Web01, Web02, Lb01
-└── RUBRIC_CHECKLIST.md     # Assignment rubric checklist
+└── README.md               # Comprehensive documentation
 ```
 
 ## 🔒 Security Notes
@@ -196,20 +184,35 @@ The application handles various error scenarios:
 
 ## 📝 Development Challenges & Solutions
 
-### Challenge 1: API Response Structure
+### Challenge 1: API Endpoint Discovery
+**Problem**: Initial endpoint path `/search-car-rental-location` returned 404 errors.
+
+**Solution**: Used RapidAPI playground to identify the correct endpoint path `/api/v1/car/search-location` by inspecting the actual HTTP requests made by the playground interface.
+
+### Challenge 2: CORS (Cross-Origin Resource Sharing) Issues
+**Problem**: Direct API calls from the browser were blocked by CORS policy.
+
+**Solution**: RapidAPI APIs allow CORS, so direct calls work. An optional Python Flask backend proxy server is provided for cases where CORS might be an issue.
+
+### Challenge 3: API Response Structure
 **Problem**: The API returns nested data structures that needed careful parsing.
 
-**Solution**: Created helper functions to safely extract data with fallback values, ensuring the UI never breaks even if some fields are missing.
+**Solution**: Created helper functions to safely extract data with fallback values, ensuring the UI never breaks even if some fields are missing. Used optional chaining and default values throughout.
 
-### Challenge 2: Real-time Filtering
+### Challenge 4: Real-time Filtering
 **Problem**: Implementing smooth filtering and sorting without page reloads.
 
-**Solution**: Used JavaScript array methods (filter, sort) to manipulate results in memory, providing instant feedback to users.
+**Solution**: Used JavaScript array methods (filter, sort) to manipulate results in memory, providing instant feedback to users. Maintained separate arrays for all results and filtered results for efficient updates.
 
-### Challenge 3: Error Handling
+### Challenge 5: Error Handling
 **Problem**: Different API errors require different user messages.
 
-**Solution**: Created a centralized error handling function that maps error types to user-friendly messages, improving the user experience.
+**Solution**: Created a centralized error handling function that maps error types (network, authentication, rate limits, etc.) to user-friendly messages, improving the user experience.
+
+### Challenge 6: User API Key Management
+**Problem**: Users needed to edit config.js file to use the application, which is not user-friendly.
+
+**Solution**: Implemented a settings menu with localStorage integration, allowing users to input and save their API key directly in the browser. The key persists across sessions and is stored securely in the browser's local storage.
 
 ## 📄 License
 
@@ -236,59 +239,52 @@ This project is created for educational purposes as part of the "Playing Around 
 
 ## 🔧 Troubleshooting
 
+### API Key Issues
+
+1. **No API Key Configured**:
+   - Click the settings icon (⚙️) in the top right
+   - Enter your RapidAPI key
+   - Click "Save API Key"
+   - Try searching again
+
+2. **API Key Not Working**:
+   - Verify your API key is correct
+   - Check that you have an active subscription to Expedia13 API
+   - Visit: https://rapidapi.com/apiheya/api/expedia13
+   - Try regenerating your API key on RapidAPI
+
 ### 404 Error (Endpoint Not Found)
 
-If you see a 404 error, try these solutions:
-
-1. **Use Backend Proxy** (Recommended):
-   - The backend proxy (`server.py`) solves both CORS and endpoint issues
-   - Follow "Option B" in Step 3 above
-   - The proxy handles API calls server-side, avoiding browser restrictions
-
-2. **Verify API Subscription**:
+1. **Verify API Subscription**:
    - Ensure you have an active subscription to Expedia13 API
    - Check that your subscription includes the `/api/v1/car/search-location` endpoint
    - Visit: https://rapidapi.com/apiheya/api/expedia13
 
-3. **Check API Key**:
-   - Verify your API key is correct in `config.js`
-   - Make sure there are no extra spaces or quotes
-   - Try regenerating your API key on RapidAPI
+2. **Check API Key**:
+   - Verify your API key is correct in settings
+   - Make sure there are no extra spaces
+   - Clear and re-enter your API key
 
 ### CORS Errors
 
 If you see CORS (Cross-Origin Resource Sharing) errors:
-- **Solution**: Use the backend proxy server (see Option B in Setup)
-- The proxy server makes API calls from the server side, bypassing CORS restrictions
+- RapidAPI APIs typically allow CORS, so this should not occur
+- If it does, use the optional backend proxy server (`server.py`)
 
 ### Network Errors
 
 - Check your internet connection
 - Verify the API server is accessible
-- Try the test page to diagnose network issues
-
-## 🚀 Deployment
-
-For detailed deployment instructions to Web01, Web02, and Load Balancer configuration, see **[DEPLOYMENT.md](DEPLOYMENT.md)**.
-
-Quick deployment overview:
-1. Deploy application files to both Web01 and Web02
-2. Configure backend proxy service on each web server
-3. Set up Nginx/Apache web server on each instance
-4. Configure load balancer (Lb01) to distribute traffic
-5. Test and verify load balancing functionality
+- Check browser console for detailed error messages
 
 ## 📞 Support
 
 If you encounter any issues:
-1. Check that your API key is correctly configured in `config.js`
+1. Check that your API key is correctly configured (use settings menu or `config.js`)
 2. Verify you have an active subscription to the Expedia13 API on RapidAPI
-3. Try the backend proxy solution (Option B in Setup)
-4. Check your internet connection
-5. Review the browser console for detailed error messages
-6. Refer to [DEPLOYMENT.md](DEPLOYMENT.md) for deployment-specific issues
+3. Check your internet connection
+4. Review the browser console for detailed error messages
 
----
 
 **Note**: This application is designed for educational purposes. For production use, additional security measures, rate limiting, and error monitoring should be implemented.
 

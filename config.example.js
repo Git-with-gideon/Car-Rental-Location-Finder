@@ -5,8 +5,9 @@
 const CONFIG = {
     apiKey: 'YOUR_RAPIDAPI_KEY_HERE',
     apiHost: 'expedia13.p.rapidapi.com',
-    useProxy: true,  // Set to true to use backend proxy (recommended - solves CORS issues)
-    proxyUrl: 'http://localhost:5000/api/search-location'  // Backend proxy URL
+    useProxy: false,  // Set to false for direct API calls (simpler, no backend needed)
+    // Set to true if you encounter CORS errors and want to use backend proxy
+    proxyUrl: 'http://localhost:5000/api/search-location'  // Only used if useProxy is true
 };
 
 // Instructions:
