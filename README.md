@@ -147,7 +147,10 @@ PLAYING WITH API/
 ├── server.py               # Backend proxy server (optional - solves CORS if needed)
 ├── requirements.txt        # Python dependencies for proxy server (if using backend)
 ├── .gitignore              # Git ignore rules (excludes config.js and sensitive files)
-└── README.md               # Comprehensive documentation
+├── README.md               # Comprehensive documentation
+├── DEPLOYMENT_SIMPLE.md    # Deployment guide (static files only)
+├── RUBRIC_CHECKLIST.md     # Assignment rubric checklist
+└── SUBMISSION_GUIDE.md     # Pre-submission checklist and instructions
 ```
 
 ## 🔒 Security Notes
@@ -277,6 +280,17 @@ If you see CORS (Cross-Origin Resource Sharing) errors:
 - Verify the API server is accessible
 - Check browser console for detailed error messages
 
+## 🚀 Deployment
+
+For detailed deployment instructions to Web01, Web02, and Load Balancer configuration, see **[DEPLOYMENT_SIMPLE.md](DEPLOYMENT_SIMPLE.md)**.
+
+**Deployment Approach**: Simple deployment (static files only)
+- ✅ Simpler setup (just static files)
+- ✅ No Python/Flask installation needed
+- ✅ Faster deployment
+- ✅ HTTPS enabled with Let's Encrypt
+- ✅ Load balancer configured and working
+
 ## 📞 Support
 
 If you encounter any issues:
@@ -284,7 +298,10 @@ If you encounter any issues:
 2. Verify you have an active subscription to the Expedia13 API on RapidAPI
 3. Check your internet connection
 4. Review the browser console for detailed error messages
+5. Refer to [DEPLOYMENT_SIMPLE.md](DEPLOYMENT_SIMPLE.md) for deployment-specific issues
+6. See [RUBRIC_CHECKLIST.md](RUBRIC_CHECKLIST.md) for assignment requirements
 
+---
 
 **Note**: This application is designed for educational purposes. For production use, additional security measures, rate limiting, and error monitoring should be implemented.
 
