@@ -46,7 +46,7 @@ A modern web application for searching car rental locations worldwide using the 
    const CONFIG = {
        apiKey: 'your-actual-api-key-here',
        apiHost: 'expedia13.p.rapidapi.com',
-       useProxy: false // chane to true if using backend (server.py)
+       useProxy: false
    };
    ```
 

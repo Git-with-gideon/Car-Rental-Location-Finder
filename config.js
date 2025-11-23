@@ -3,7 +3,7 @@
 // Get your API key from: https://rapidapi.com/apiheya/api/expedia13
 
 const CONFIG = {
-    apiKey: '6d398f9885mshf33fdc49d9a4d79p193a55jsn813d5bc2972a',
+    apiKey: '528ca9bfbamsh4ae61597e5f4e29p17bb5ajsn630918dd8fde',
     apiHost: 'expedia13.p.rapidapi.com',
     useProxy: false,  // Set to false for direct API calls (no backend needed)
     proxyUrl: 'http://localhost:5000/api/search-location'  // Only used if useProxy is true
