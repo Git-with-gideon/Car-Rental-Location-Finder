@@ -24,6 +24,16 @@ let API_CONFIG = {
 let allResults = [];
 let filteredResults = [];
 
+// User authentication state
+let currentUser = null;
+
+// Cache configuration
+const CACHE_CONFIG = {
+    enabled: true,
+    expirationTime: 30 * 60 * 1000, // 30 minutes in milliseconds
+    maxCacheSize: 50 // Maximum number of cached queries
+};
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     // Load API configuration from config.js
@@ -34,11 +44,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load saved API key from localStorage
     loadSavedApiKey();
 
+    // Initialize authentication
+    initializeAuth();
+
     // Initialize settings modal
     initializeSettings();
 
     // Verify API configuration
     updateApiKeyStatus();
+    
+    // Load cached data if available
+    loadCacheStats();
 
     // Search button event
     document.getElementById('search-button').addEventListener('click', handleSearch);
@@ -54,6 +70,17 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('type-filter').addEventListener('change', applyFilters);
     document.getElementById('sort-option').addEventListener('change', applyFilters);
     document.getElementById('search-filter').addEventListener('input', applyFilters);
+    
+    // Clear cache button (now in settings modal)
+    const clearCacheBtn = document.getElementById('clear-cache-btn');
+    if (clearCacheBtn) {
+        clearCacheBtn.addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear all cached search results?')) {
+                clearCache();
+                showNotification('Cache cleared successfully', 'success');
+            }
+        });
+    }
 });
 
 // Load saved API key from localStorage
@@ -118,6 +145,8 @@ function initializeSettings() {
     settingsButton.addEventListener('click', function() {
         settingsModal.classList.remove('hidden');
         updateApiKeyStatus();
+        updateAuthUI(); // Refresh account section
+        loadCacheStats(); // Refresh cache stats
         // Focus on input
         setTimeout(() => apiKeyInput.focus(), 100);
     });
@@ -269,14 +298,28 @@ async function handleSearch() {
     }
 }
 
-// API call function
+// API call function with caching
 async function searchCarRentalLocation(query) {
-    // Use proxy if configured, otherwise use direct API call
-    if (API_CONFIG.useProxy) {
-        return await searchViaProxy(query);
-    } else {
-        return await searchDirect(query);
+    // Check cache first
+    const cached = getCachedResponse(query);
+    if (cached) {
+        return cached;
     }
+    
+    // Use proxy if configured, otherwise use direct API call
+    let data;
+    if (API_CONFIG.useProxy) {
+        data = await searchViaProxy(query);
+    } else {
+        data = await searchDirect(query);
+    }
+    
+    // Save to cache
+    if (data) {
+        saveToCache(query, data);
+    }
+    
+    return data;
 }
 
 // Direct API call (may have CORS issues)
@@ -424,6 +467,34 @@ function displayResults(results) {
         const card = createLocationCard(location, index);
         resultsDiv.appendChild(card);
     });
+    
+    // Add event listeners for favorite buttons
+    document.querySelectorAll('.favorite-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const locationIndex = parseInt(this.getAttribute('data-location-id'));
+            const location = (filteredResults.length > 0 ? filteredResults : allResults)[locationIndex];
+            if (location) {
+                toggleFavorite(location);
+            }
+        });
+    });
+    
+    // Add event listeners for map toggle buttons
+    document.querySelectorAll('.map-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const locationIndex = parseInt(this.getAttribute('data-location-index'));
+            const mapDiv = document.getElementById(`map-${locationIndex}`);
+            if (mapDiv) {
+                if (mapDiv.classList.contains('hidden')) {
+                    mapDiv.classList.remove('hidden');
+                    this.textContent = 'Hide Map';
+                } else {
+                    mapDiv.classList.add('hidden');
+                    this.textContent = 'Show Map';
+                }
+            }
+        });
+    });
 }
 
 // Create location card
@@ -452,14 +523,61 @@ function createLocationCard(location, index) {
                      type === 'CITY' ? 'City' : 
                      type === 'NEIGHBORHOOD' ? 'Neighborhood' : type;
 
+    // Create Google Maps URL for the location
+    const mapsUrl = lat && long ? `https://www.google.com/maps?q=${lat},${long}` : null;
+    
+    // Check if location is in favorites
+    const locationId = location.gaiaId || `${displayName}_${lat}_${long}`;
+    const isFavorite = currentUser && currentUser.favorites && 
+                      currentUser.favorites.some(fav => fav.id === locationId);
+
     card.innerHTML = `
         <div class="result-header">
             <div>
-                <div class="result-title">${escapeHtml(primaryName)}</div>
+                ${mapsUrl ? `
+                    <div class="result-title">
+                        <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="title-link" title="View on Google Maps">
+                            ${escapeHtml(primaryName)}
+                            <svg class="title-map-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                        </a>
+                    </div>
+                ` : `
+                    <div class="result-title">${escapeHtml(primaryName)}</div>
+                `}
                 ${secondaryName ? `<div class="result-subtitle">${escapeHtml(secondaryName)}</div>` : ''}
             </div>
-            <span class="type-badge ${typeClass}">${typeLabel}</span>
+            <div class="header-actions">
+                <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
+                        data-location-id="${index}"
+                        title="${isFavorite ? 'Remove from favorites' : 'Add to favorites'}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="${isFavorite ? '#C41E3A' : 'none'}" stroke="#C41E3A" stroke-width="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                </button>
+                <span class="type-badge ${typeClass}">${typeLabel}</span>
+            </div>
         </div>
+        ${lat && long ? `
+        <div class="map-container">
+            <div class="map-toggle">
+                <button class="map-toggle-btn" data-location-index="${index}">Show Map</button>
+            </div>
+            <div class="embedded-map hidden" id="map-${index}">
+                <iframe 
+                    width="100%" 
+                    height="250" 
+                    style="border:0; border-radius: 8px;" 
+                    loading="lazy" 
+                    allowfullscreen
+                    referrerpolicy="no-referrer-when-downgrade"
+                    src="https://www.google.com/maps?q=${lat},${long}&output=embed&zoom=12">
+                </iframe>
+            </div>
+        </div>
+        ` : ''}
         <div class="result-details">
             ${displayName !== primaryName ? `
                 <div class="detail-item">
@@ -482,7 +600,19 @@ function createLocationCard(location, index) {
             ${lat && long ? `
                 <div class="detail-item">
                     <div class="detail-label">Coordinates</div>
-                    <div class="detail-value coordinates">${lat}, ${long}</div>
+                    <div class="detail-value">
+                        <a href="https://www.google.com/maps?q=${lat},${long}" 
+                           target="_blank" 
+                           rel="noopener noreferrer" 
+                           class="map-link"
+                           title="View on Google Maps">
+                            <span class="coordinates">${lat}, ${long}</span>
+                            <svg class="map-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                        </a>
+                    </div>
                 </div>
             ` : ''}
             ${location.gaiaId ? `
@@ -589,5 +719,458 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// ==================== CACHING MECHANISM ====================
+
+/**
+ * Get cache key for a query
+ */
+function getCacheKey(query) {
+    return `api_cache_${query.toLowerCase().trim()}`;
+}
+
+/**
+ * Get cached API response if available and not expired
+ */
+function getCachedResponse(query) {
+    if (!CACHE_CONFIG.enabled) return null;
+    
+    const cacheKey = getCacheKey(query);
+    const cached = localStorage.getItem(cacheKey);
+    
+    if (!cached) return null;
+    
+    try {
+        const cacheData = JSON.parse(cached);
+        const now = Date.now();
+        
+        // Check if cache is expired
+        if (now - cacheData.timestamp > CACHE_CONFIG.expirationTime) {
+            localStorage.removeItem(cacheKey);
+            return null;
+        }
+        
+        console.log('Cache hit for query:', query);
+        return cacheData.data;
+    } catch (e) {
+        console.error('Error reading cache:', e);
+        localStorage.removeItem(cacheKey);
+        return null;
+    }
+}
+
+/**
+ * Save API response to cache
+ */
+function saveToCache(query, data) {
+    if (!CACHE_CONFIG.enabled) return;
+    
+    try {
+        const cacheKey = getCacheKey(query);
+        const cacheData = {
+            data: data,
+            timestamp: Date.now(),
+            query: query
+        };
+        
+        // Clean old cache entries if we exceed max size
+        cleanOldCacheEntries();
+        
+        localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+        console.log('Response cached for query:', query);
+        updateCacheStats();
+    } catch (e) {
+        console.error('Error saving to cache:', e);
+        // If storage is full, try to clean up
+        if (e.name === 'QuotaExceededError') {
+            cleanOldCacheEntries(true);
+        }
+    }
+}
+
+/**
+ * Clean old cache entries to free up space
+ */
+function cleanOldCacheEntries(force = false) {
+    const cacheKeys = [];
+    const now = Date.now();
+    
+    // Collect all cache keys
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('api_cache_')) {
+            cacheKeys.push(key);
+        }
+    }
+    
+    // Remove expired entries
+    cacheKeys.forEach(key => {
+        try {
+            const cached = localStorage.getItem(key);
+            if (cached) {
+                const cacheData = JSON.parse(cached);
+                if (now - cacheData.timestamp > CACHE_CONFIG.expirationTime) {
+                    localStorage.removeItem(key);
+                }
+            }
+        } catch (e) {
+            localStorage.removeItem(key);
+        }
+    });
+    
+    // If still too many, remove oldest entries
+    if (force || cacheKeys.length > CACHE_CONFIG.maxCacheSize) {
+        const entries = cacheKeys.map(key => {
+            try {
+                const cached = localStorage.getItem(key);
+                if (cached) {
+                    const cacheData = JSON.parse(cached);
+                    return { key, timestamp: cacheData.timestamp };
+                }
+            } catch (e) {
+                return { key, timestamp: 0 };
+            }
+        }).filter(Boolean).sort((a, b) => a.timestamp - b.timestamp);
+        
+        // Remove oldest entries
+        const toRemove = entries.slice(0, entries.length - CACHE_CONFIG.maxCacheSize);
+        toRemove.forEach(entry => localStorage.removeItem(entry.key));
+    }
+}
+
+/**
+ * Clear all cache entries
+ */
+function clearCache() {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('api_cache_')) {
+            keysToRemove.push(key);
+        }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    updateCacheStats();
+    console.log('Cache cleared');
+}
+
+/**
+ * Update cache statistics display
+ */
+function loadCacheStats() {
+    const cacheKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('api_cache_')) {
+            cacheKeys.push(key);
+        }
+    }
+    
+    const cacheStatsEl = document.getElementById('cache-stats');
+    if (cacheStatsEl) {
+        cacheStatsEl.textContent = cacheKeys.length;
+    }
+}
+
+function updateCacheStats() {
+    loadCacheStats();
+}
+
+// ==================== USER AUTHENTICATION ====================
+
+/**
+ * Initialize authentication system
+ */
+function initializeAuth() {
+    // Check if user is logged in
+    const savedUser = localStorage.getItem('current_user');
+    if (savedUser) {
+        try {
+            currentUser = JSON.parse(savedUser);
+            updateAuthUI();
+        } catch (e) {
+            console.error('Error loading user:', e);
+            localStorage.removeItem('current_user');
+        }
+    }
+    
+    // Set up auth modal event listeners
+    const loginButton = document.getElementById('login-button');
+    const loginFromSettings = document.getElementById('login-from-settings');
+    const logoutButton = document.getElementById('logout-button');
+    const authModal = document.getElementById('auth-modal');
+    const closeAuthButton = document.getElementById('close-auth');
+    const authOverlay = document.getElementById('auth-overlay');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const showRegisterLink = document.getElementById('show-register');
+    const showLoginLink = document.getElementById('show-login');
+    
+    if (loginButton) {
+        loginButton.addEventListener('click', () => {
+            authModal.classList.remove('hidden');
+            showLoginForm();
+        });
+    }
+    
+    if (loginFromSettings) {
+        loginFromSettings.addEventListener('click', () => {
+            document.getElementById('settings-modal').classList.add('hidden');
+            authModal.classList.remove('hidden');
+            showLoginForm();
+        });
+    }
+    
+    if (logoutButton) {
+        logoutButton.addEventListener('click', handleLogout);
+    }
+    
+    if (closeAuthButton) {
+        closeAuthButton.addEventListener('click', () => {
+            authModal.classList.add('hidden');
+        });
+    }
+    
+    if (authOverlay) {
+        authOverlay.addEventListener('click', () => {
+            authModal.classList.add('hidden');
+        });
+    }
+    
+    if (loginForm) {
+        loginForm.addEventListener('submit', handleLogin);
+    }
+    
+    if (registerForm) {
+        registerForm.addEventListener('submit', handleRegister);
+    }
+    
+    if (showRegisterLink) {
+        showRegisterLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showRegisterForm();
+        });
+    }
+    
+    if (showLoginLink) {
+        showLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            showLoginForm();
+        });
+    }
+}
+
+/**
+ * Show login form
+ */
+function showLoginForm() {
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    if (loginForm) loginForm.classList.remove('hidden');
+    if (registerForm) registerForm.classList.add('hidden');
+}
+
+/**
+ * Show register form
+ */
+function showRegisterForm() {
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    if (loginForm) loginForm.classList.add('hidden');
+    if (registerForm) registerForm.classList.remove('hidden');
+}
+
+/**
+ * Handle user login
+ */
+function handleLogin(e) {
+    e.preventDefault();
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    
+    if (!username || !password) {
+        showNotification('Please enter both username and password', 'error');
+        return;
+    }
+    
+    // Get user from localStorage
+    const users = JSON.parse(localStorage.getItem('users') || '{}');
+    const user = users[username];
+    
+    if (!user || user.password !== password) {
+        showNotification('Invalid username or password', 'error');
+        return;
+    }
+    
+    // Login successful
+    currentUser = {
+        username: username,
+        email: user.email,
+        favorites: user.favorites || [],
+        preferences: user.preferences || {}
+    };
+    
+    localStorage.setItem('current_user', JSON.stringify(currentUser));
+    updateAuthUI();
+    document.getElementById('auth-modal').classList.add('hidden');
+    showNotification(`Welcome back, ${username}!`, 'success');
+    
+    // Clear form
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+}
+
+/**
+ * Handle user registration
+ */
+function handleRegister(e) {
+    e.preventDefault();
+    const username = document.getElementById('register-username').value.trim();
+    const email = document.getElementById('register-email').value.trim();
+    const password = document.getElementById('register-password').value;
+    const confirmPassword = document.getElementById('register-confirm-password').value;
+    
+    if (!username || !email || !password) {
+        showNotification('Please fill in all fields', 'error');
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        showNotification('Passwords do not match', 'error');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showNotification('Password must be at least 6 characters', 'error');
+        return;
+    }
+    
+    // Get existing users
+    const users = JSON.parse(localStorage.getItem('users') || '{}');
+    
+    if (users[username]) {
+        showNotification('Username already exists', 'error');
+        return;
+    }
+    
+    // Create new user
+    users[username] = {
+        username: username,
+        email: email,
+        password: password,
+        favorites: [],
+        preferences: {},
+        createdAt: Date.now()
+    };
+    
+    localStorage.setItem('users', JSON.stringify(users));
+    
+    // Auto-login
+    currentUser = {
+        username: username,
+        email: email,
+        favorites: [],
+        preferences: {}
+    };
+    
+    localStorage.setItem('current_user', JSON.stringify(currentUser));
+    updateAuthUI();
+    document.getElementById('auth-modal').classList.add('hidden');
+    showNotification(`Account created! Welcome, ${username}!`, 'success');
+    
+    // Clear form
+    document.getElementById('register-username').value = '';
+    document.getElementById('register-email').value = '';
+    document.getElementById('register-password').value = '';
+    document.getElementById('register-confirm-password').value = '';
+}
+
+/**
+ * Handle user logout
+ */
+function handleLogout() {
+    if (confirm('Are you sure you want to logout?')) {
+        currentUser = null;
+        localStorage.removeItem('current_user');
+        updateAuthUI();
+        showNotification('Logged out successfully', 'info');
+    }
+}
+
+/**
+ * Update authentication UI based on login state
+ */
+function updateAuthUI() {
+    const loginButton = document.getElementById('login-button');
+    const userSectionLoggedIn = document.getElementById('user-section-logged-in');
+    const userName = document.getElementById('user-name');
+    const accountLoggedOut = document.getElementById('account-logged-out');
+    const accountLoggedIn = document.getElementById('account-logged-in');
+    const settingsUserName = document.getElementById('settings-user-name');
+    const settingsUserEmail = document.getElementById('settings-user-email');
+    
+    if (currentUser) {
+        if (loginButton) loginButton.classList.add('hidden');
+        if (userSectionLoggedIn) userSectionLoggedIn.classList.remove('hidden');
+        if (userName) userName.textContent = currentUser.username;
+        if (accountLoggedOut) accountLoggedOut.classList.add('hidden');
+        if (accountLoggedIn) accountLoggedIn.classList.remove('hidden');
+        if (settingsUserName) settingsUserName.textContent = currentUser.username;
+        if (settingsUserEmail) {
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            const user = users[currentUser.username];
+            settingsUserEmail.textContent = user ? user.email : '';
+        }
+    } else {
+        if (loginButton) loginButton.classList.remove('hidden');
+        if (userSectionLoggedIn) userSectionLoggedIn.classList.add('hidden');
+        if (accountLoggedOut) accountLoggedOut.classList.remove('hidden');
+        if (accountLoggedIn) accountLoggedIn.classList.add('hidden');
+    }
+}
+
+/**
+ * Toggle favorite location (global function for onclick handlers)
+ */
+window.toggleFavorite = function(location) {
+    if (!currentUser) {
+        showNotification('Please login to save favorites', 'error');
+        document.getElementById('login-button')?.click();
+        return;
+    }
+    
+    const users = JSON.parse(localStorage.getItem('users') || '{}');
+    const user = users[currentUser.username];
+    
+    if (!user) return;
+    
+    const locationId = location.gaiaId || `${location.regionNames?.fullName}_${location.coordinates?.lat}_${location.coordinates?.long}`;
+    const favorites = user.favorites || [];
+    const index = favorites.findIndex(fav => fav.id === locationId);
+    
+    if (index > -1) {
+        favorites.splice(index, 1);
+        showNotification('Removed from favorites', 'info');
+    } else {
+        favorites.push({
+            id: locationId,
+            location: location,
+            addedAt: Date.now()
+        });
+        showNotification('Added to favorites', 'success');
+    }
+    
+    user.favorites = favorites;
+    users[currentUser.username] = user;
+    localStorage.setItem('users', JSON.stringify(users));
+    
+    currentUser.favorites = favorites;
+    localStorage.setItem('current_user', JSON.stringify(currentUser));
+    
+    // Update UI if results are displayed
+    if (allResults.length > 0) {
+        displayResults(filteredResults.length > 0 ? filteredResults : allResults);
+    }
 }
 

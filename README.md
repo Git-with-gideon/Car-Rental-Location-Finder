@@ -2,26 +2,62 @@
 
 A modern web application for searching car rental locations worldwide using the Expedia13 API. This application provides an intuitive interface to find airports, cities, and neighborhoods where car rental services are available.
 
-> **📋 Rubric Checklist**: See [RUBRIC_CHECKLIST.md](RUBRIC_CHECKLIST.md) to verify all assignment requirements are met.
 
-## 🚀 Features
+## Demo video
+[Demo video URL](https://rapidapi.com)
 
+
+## Deployment URL
+```
+1. gideonweb.tech
+2. www.gideonweb.tech
+3. lb-01.gideonweb.tech
+```
+
+##  Features
+
+### Core Features
 - **Location Search**: Search for car rental locations by city, airport, or neighborhood name
 - **Smart Filtering**: Filter results by type (Airport, City, Neighborhood)
 - **Advanced Sorting**: Sort results by relevance, name, or country
 - **In-Result Search**: Search within results for quick filtering
+- **Google Maps Integration**: Click on location names or coordinates to view on Google Maps
 - **Settings Menu**: Users can input and save their API key directly in the app (stored in browser)
 - **Error Handling**: Comprehensive error handling with user-friendly messages
 - **Responsive Design**: Works seamlessly on desktop and mobile devices
 - **Modern UI**: Clean, human-friendly interface with red rose color theme
 
-## 📋 Prerequisites
+###  Bonus Features (Extra Points)
+
+- **User Authentication**: 
+  - Create an account or login to save your favorite locations
+  - Personalized user experience with saved preferences
+  - Secure localStorage-based authentication system
+  
+- **Advanced Data Visualization**: 
+  - Embedded Google Maps directly in search results
+  - Interactive map toggle for each location
+  - Visual representation of locations on maps
+  
+- **Performance Optimization (Caching)**: 
+  - API response caching with 30-minute expiration
+  - Automatic cache management and cleanup
+  - Faster load times for repeated searches
+  - Cache statistics display
+  - Manual cache clearing option
+  
+- **Favorites System**: 
+  - Save favorite locations when logged in
+  - Quick access to frequently searched locations
+  - Visual indicators for favorited locations
+
+##  Prerequisites
 
 - A web browser (Chrome, Firefox, Safari, Edge)
 - A RapidAPI account (free tier available)
 - Internet connection
 
-## 🛠️ Setup Instructions
+##  Setup Instructions
 
 ### Step 1: Get Your API Key
 
@@ -68,7 +104,7 @@ A modern web application for searching car rental locations worldwide using the 
 
 **Note**: The application uses direct API calls. If you encounter CORS issues, you can use the optional backend proxy (see `server.py` and `requirements.txt`).
 
-## 📖 How to Use
+## How to Use
 
 1. **Configure API Key** (First Time):
    - Click the settings icon (⚙️) in the top right corner
@@ -88,13 +124,14 @@ A modern web application for searching car rental locations worldwide using the 
 
 4. **View Details**:
    - Each result card shows:
-     - Location name and type
+     - Location name and type (clickable - opens Google Maps)
      - Country information
      - Airport codes (if applicable)
-     - Geographic coordinates
+     - Geographic coordinates (clickable - opens Google Maps)
      - Location ID
+   - **Click on location name or coordinates** to view the location on Google Maps in a new tab
 
-## 🔧 API Information
+##  API Information
 
 ### API Used
 - **Name**: Expedia13 API
@@ -135,7 +172,7 @@ The API returns location data in the following format:
 }
 ```
 
-## 🏗️ Project Structure
+##  Project Structure
 
 ```
 PLAYING WITH API/
@@ -147,13 +184,10 @@ PLAYING WITH API/
 ├── server.py               # Backend proxy server (optional - solves CORS if needed)
 ├── requirements.txt        # Python dependencies for proxy server (if using backend)
 ├── .gitignore              # Git ignore rules (excludes config.js and sensitive files)
-├── README.md               # Comprehensive documentation
-├── DEPLOYMENT_SIMPLE.md    # Deployment guide (static files only)
-├── RUBRIC_CHECKLIST.md     # Assignment rubric checklist
-└── SUBMISSION_GUIDE.md     # Pre-submission checklist and instructions
+└── README.md     # Comprehensive documentation
 ```
 
-## 🔒 Security Notes
+##  Security Notes
 
 - **Never commit your API key** to version control
 - The `config.js` file is included in `.gitignore` to prevent accidental commits
@@ -169,7 +203,7 @@ The application handles various error scenarios:
 - **Empty Results**: Provides helpful feedback when no locations are found
 - **Invalid Input**: Validates user input before making API requests
 
-## 🎨 Design Philosophy
+##  Design Philosophy
 
 - **Modern & Clean**: Simple, uncluttered interface
 - **Human-Friendly**: Intuitive navigation and clear feedback
@@ -177,15 +211,40 @@ The application handles various error scenarios:
 - **Responsive**: Works on all screen sizes
 - **Accessible**: Clear labels and semantic HTML
 
-## 🚧 Future Enhancements
+##  Bonus Features Usage
+
+### User Authentication
+1. Click the **Login** button in the header
+2. Register a new account or login with existing credentials
+3. Once logged in, you can:
+   - Save favorite locations by clicking the heart icon on any location card
+   - Access your saved favorites (stored in browser localStorage)
+   - Logout when done
+
+### Embedded Maps
+1. Search for locations as usual
+2. In each location card, click **"Show Map"** to view an embedded Google Map
+3. The map shows the exact location with zoom level 12
+4. Click **"Hide Map"** to collapse the map view
+
+### Caching System
+- **Automatic**: Search results are automatically cached for 30 minutes
+- **Cache Stats**: View the number of cached queries in the header
+- **Clear Cache**: Click "Clear Cache" button to remove all cached data
+- **Benefits**: 
+  - Faster response times for repeated searches
+  - Reduced API calls (saves rate limits)
+  - Works offline for cached queries
+
+##  Future Enhancements
 
 - Integration with additional Expedia13 API endpoints (car rental availability, pricing)
-- Map visualization of search results
-- Save favorite locations
 - Export results to CSV/JSON
 - Advanced filtering options (by country, coordinates range)
+- User profile management
+- Share favorite locations with other users
 
-## 📝 Development Challenges & Solutions
+##  Development Challenges & Solutions
 
 ### Challenge 1: API Endpoint Discovery
 **Problem**: Initial endpoint path `/search-car-rental-location` returned 404 errors.
@@ -217,11 +276,11 @@ The application handles various error scenarios:
 
 **Solution**: Implemented a settings menu with localStorage integration, allowing users to input and save their API key directly in the browser. The key persists across sessions and is stored securely in the browser's local storage.
 
-## 📄 License
+##  License
 
 This project is created for educational purposes as part of the "Playing Around with APIs" assignment.
 
-## 🙏 Credits & Attribution
+##  Credits & Attribution
 
 ### API Attribution
 - **Expedia13 API**: Provided by [apiheya](https://rapidapi.com/apiheya/api/expedia13) via RapidAPI
@@ -282,8 +341,6 @@ If you see CORS (Cross-Origin Resource Sharing) errors:
 
 ## 🚀 Deployment
 
-For detailed deployment instructions to Web01, Web02, and Load Balancer configuration, see **[DEPLOYMENT_SIMPLE.md](DEPLOYMENT_SIMPLE.md)**.
-
 **Deployment Approach**: Simple deployment (static files only)
 - ✅ Simpler setup (just static files)
 - ✅ No Python/Flask installation needed
@@ -298,8 +355,6 @@ If you encounter any issues:
 2. Verify you have an active subscription to the Expedia13 API on RapidAPI
 3. Check your internet connection
 4. Review the browser console for detailed error messages
-5. Refer to [DEPLOYMENT_SIMPLE.md](DEPLOYMENT_SIMPLE.md) for deployment-specific issues
-6. See [RUBRIC_CHECKLIST.md](RUBRIC_CHECKLIST.md) for assignment requirements
 
 ---
 
