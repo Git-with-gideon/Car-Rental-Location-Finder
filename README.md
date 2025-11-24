@@ -4,7 +4,7 @@ A modern web application for searching car rental locations worldwide using the 
 
 
 ## Demo video
-[Demo video URL](https://rapidapi.com)
+[Demo video URL](https://youtu.be/VJmlYwnba8s)
 
 
 ## Deployment URL
@@ -194,7 +194,7 @@ PLAYING WITH API/
 - Always use environment variables or secure configuration files in production
 - Keep your API keys private and rotate them if exposed
 
-## 🐛 Error Handling
+##  Error Handling
 
 The application handles various error scenarios:
 
@@ -299,7 +299,7 @@ This project is created for educational purposes as part of the "Playing Around 
 - **Backend Proxy**: Python 3, Flask, Flask-CORS
 - **HTTP Client**: Fetch API (frontend), Requests library (backend)
 
-## 🔧 Troubleshooting
+##  Troubleshooting
 
 ### API Key Issues
 
@@ -339,7 +339,7 @@ If you see CORS (Cross-Origin Resource Sharing) errors:
 - Verify the API server is accessible
 - Check browser console for detailed error messages
 
-## 🚀 Deployment
+##  Deployment
 
 **Deployment Approach**: Simple deployment (static files only)
 - ✅ Simpler setup (just static files)
@@ -348,7 +348,7 @@ If you see CORS (Cross-Origin Resource Sharing) errors:
 - ✅ HTTPS enabled with Let's Encrypt
 - ✅ Load balancer configured and working
 
-## 📞 Support
+##  Support
 
 If you encounter any issues:
 1. Check that your API key is correctly configured (use settings menu or `config.js`)
