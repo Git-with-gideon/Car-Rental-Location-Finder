@@ -14,6 +14,11 @@ A modern web application for searching car rental locations worldwide using the 
 3. lb-01.gideonweb.tech
 ```
 
+## Figma design file
+
+```
+https://www.figma.com/design/7CCu06JZso11mYuBIQKbuI/Untitled?node-id=1-91&t=51aB0rPqZNSCs8XJ-1
+```
 ##  Features
 
 ### Core Features
